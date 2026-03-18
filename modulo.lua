@@ -45,27 +45,47 @@ local function dividi(dati)
 	local nx,px
 	while (dati[n]) do n = n+1 end
 	n = n-1
-	for m=4,n,4 do
-		nx = tonumber(dati[m-3])
-		px = tonumber(dati[m-2])
+	for m=6,n,6 do
+		nx = tonumber(dati[m-5])
+		px = tonumber(dati[m-4])
 		if (nx) then
 			if (px) then
 				if (pers[nx]) then
 					error(string.format('Inserito id = %d per più elementi',nx))
 				else
-					pers[nx] = { padre = px, testo = dati[m-1], nota = dati[m], id = -1, x = -1, y = -1, sp = 0, figli = {} }
+					pers[nx] = { padre = px, testo = dati[m-3], nota = dati[m-2], coniugi = dati[m-1], align = dati[m], id = -1, x = -1, y = -1, sp = 0, figli = {} }
 				end
 			else
-				error(string.format('Inserito id genitore = %s non numerico (id = %d)',dati[m-2],nx))
+				error(string.format('Inserito id genitore = %s non numerico (id = %d)',dati[m-4],nx))
 			end
 		else
-			error(string.format('Inserito id = %s non numerico',dati[m-3]))
+			error(string.format('Inserito id = %s non numerico',dati[m-5]))
 		end
 		resto = n-m
 	end
 	if (resto > 0) then
 		error(string.format('Numero di dati %d non valido (elementi in più: %d)',n,resto))
 	end
+end
+
+local function componiTestoPersona(persona)
+	local righe = { persona.testo }
+	local nota = persona.nota or ''
+	local coniugi
+
+	if (nota ~= '' and nota ~= '-') then
+		table.insert(righe, string.format('<span style="font-size:90%%"><i>%s</i></span>', nota))
+	end
+
+	coniugi = (persona.coniugi or ''):gsub('<br%s*/>', '\n'):gsub('<br>', '\n')
+	for coniuge in mw.text.gsplit(coniugi, '\n', true) do
+		coniuge = mw.text.trim(coniuge)
+		if (coniuge ~= '') then
+			table.insert(righe, coniuge)
+		end
+	end
+
+	return table.concat(righe, '<br/>')
 end
 
 local function organizza(pid, y)
@@ -267,7 +287,8 @@ local function mostraX(pid,allinea,largo,dida)
 			end
 			riga2:node(mw.html.create('td')
 				:attr('colspan','2')
-				:wikitextIf(pers[v].nota=='-', pers[v].testo, string.format('%s<br/><span style="font-size:90%%"><i>%s</i></span>',pers[v].testo,pers[v].nota))
+				:cssIf(pers[v].align and pers[v].align ~= '', 'text-align', pers[v].align)
+				:wikitext(componiTestoPersona(pers[v]))
 			)
 			posx[2] = xx + 2
 
@@ -331,7 +352,8 @@ local function mostraY2(pid, a)
 			:node(mw.html.create('td')
 				:attr({['colspan']=2*a-1, ['rowspan']=2})
 				:css('padding', '0px 3px 2px 1px')
-				:wikitextIf(pers[pid].nota=='', pers[pid].testo, pers[pid].testo..' - '..pers[pid].nota))
+				:cssIf(pers[pid].align and pers[pid].align ~= '', 'text-align', pers[pid].align)
+				:wikitext(componiTestoPersona(pers[pid])))
 		riga2
 			:node(mw.html.create('td'))
 			:node(mw.html.create('td')
@@ -344,7 +366,8 @@ local function mostraY2(pid, a)
 				:node(mw.html.create('td')
 					:attr('colspan',2*a-1)
 					:css('padding','0px 0px 2px 2px')
-					:wikitextIf(pers[pid].nota=='',pers[pid].testo,pers[pid].testo..' - '..pers[pid].nota)
+					:cssIf(pers[pid].align and pers[pid].align ~= '', 'text-align', pers[pid].align)
+					:wikitext(componiTestoPersona(pers[pid]))
 				)
 		)
 	end
