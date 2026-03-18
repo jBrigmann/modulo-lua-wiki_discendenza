@@ -73,7 +73,7 @@ local function organizza(pid, y)
 	pers[pid].y = y
 	if (not tabella[y]) then tabella[y] = {} end
 	table.insert(tabella[y], pid)
-	for i, v in pairs(pers[pid].figli) do
+	for i, v in ipairs(pers[pid].figli) do
 		pers[v].id = i
 		nn = nn + organizza(v, y+1)
 	end
@@ -152,7 +152,7 @@ local function verifica(pid)
 end
 
 local function calcolaX1(pid)
-	for _, v in pairs(pers[pid].figli) do
+	for _, v in ipairs(pers[pid].figli) do
 		calcolaX1(v)
 	end
 	local tt = #pers[pid].figli
@@ -240,9 +240,9 @@ local function mostraX(pid,allinea,largo,dida)
 		n1 = 0
 		if (n>1) then riga1:css('line-height','8px') end
 		if (n<xy[2]) then riga3:css('line-height','8px') end
-		for _, v in pairs(tabella[n]) do
-			xx = pers[v].x
-			xp = pers[v].padre
+			for _, v in ipairs(tabella[n]) do
+				xx = pers[v].x
+				xp = pers[v].padre
 			
 			if (n==1) then
 				for m=1,(xy[1]+2) do
@@ -265,10 +265,10 @@ local function mostraX(pid,allinea,largo,dida)
 					:wikitext('&nbsp;')
 				)
 			end
-			riga2:node(mw.html.create('td')
-				:attr('colspan','2')
-				:wikitextIf(pers[v].nota=='-', pers[v].testo, string.format('%s<br/><span style="font-size:90%%"><i>%s</i></span>',pers[v].testo,pers[v].nota))
-			)
+				riga2:node(mw.html.create('td')
+					:attr('colspan','2')
+					:wikitextIf(pers[v].nota=='-' or pers[v].nota=='', pers[v].testo, string.format('%s<br/><span style="font-size:90%%"><i>%s</i></span>',pers[v].testo,pers[v].nota))
+				)
 			posx[2] = xx + 2
 
 			if (n<xy[2]) then
@@ -328,11 +328,11 @@ local function mostraY2(pid, a)
 				:css('width','6px'))
 			:node(mw.html.create('td')
 				:css({['border-left']='1px solid #666',['border-bottom']='1px solid #666',['width']='10px',['line-height']='3px',['height']='12px'}))
-			:node(mw.html.create('td')
-				:attr({['colspan']=2*a-1, ['rowspan']=2})
-				:css('padding', '0px 3px 2px 1px')
-				:wikitextIf(pers[pid].nota=='', pers[pid].testo, pers[pid].testo..' - '..pers[pid].nota))
-		riga2
+				:node(mw.html.create('td')
+					:attr({['colspan']=2*a-1, ['rowspan']=2})
+					:css('padding', '0px 3px 2px 1px')
+					:wikitextIf(pers[pid].nota=='-' or pers[pid].nota=='', pers[pid].testo, pers[pid].testo..' - '..pers[pid].nota))
+			riga2
 			:node(mw.html.create('td'))
 			:node(mw.html.create('td')
 				:css({['line-height']='8px',['line-height']='3px',['height']='12px'})
@@ -341,18 +341,18 @@ local function mostraY2(pid, a)
 	else
 		bTabella:node(
 			mw.html.create('tr')
-				:node(mw.html.create('td')
-					:attr('colspan',2*a-1)
-					:css('padding','0px 0px 2px 2px')
-					:wikitextIf(pers[pid].nota=='',pers[pid].testo,pers[pid].testo..' - '..pers[pid].nota)
-				)
-		)
-	end
-	if (pers[pid].sp > 0) then
-		for _, v in pairs(pers[pid].figli) do
-			mostraY2(v,a-1)
+					:node(mw.html.create('td')
+						:attr('colspan',2*a-1)
+						:css('padding','0px 0px 2px 2px')
+						:wikitextIf(pers[pid].nota=='-' or pers[pid].nota=='',pers[pid].testo,pers[pid].testo..' - '..pers[pid].nota)
+					)
+			)
 		end
-	end
+		if (pers[pid].sp > 0) then
+			for _, v in ipairs(pers[pid].figli) do
+				mostraY2(v,a-1)
+			end
+		end
 end
 
 	mostraY2(pid,calcolaY(pid,0))
@@ -360,6 +360,8 @@ end
 end
 
 function p._discendenza(args)
+	pers = {}
+	tabella = {}
 	local capo = -1
 	local n1, n2
 	local lato = args['allinea'] or 'centro'
@@ -391,16 +393,18 @@ function p._discendenza(args)
 		error('Capostipite non definito')
 	else
 		n2 = organizza(capo, 1)
-		if (n1 == n2) then
-			if (tipo == 'v') then
-				return mostraY(capo)
-			elseif (tipo == 'o') then
-				calcolaX1(capo)
-				calcolaX2(capo)
-				calcolaX3(capo, 0)
-				return mostraX(capo, lato, larg, dida)
-			end
-		else
+			if (n1 == n2) then
+				if (tipo == 'v') then
+					return mostraY(capo)
+				elseif (tipo == 'o') then
+					calcolaX1(capo)
+					calcolaX2(capo)
+					calcolaX3(capo, 0)
+					return mostraX(capo, lato, larg, dida)
+				else
+					error(string.format("Tipo '%s' non valido", tipo))
+				end
+			else
 			error('Inseriti elementi non collegati al capostipite')
 		end
 	end
