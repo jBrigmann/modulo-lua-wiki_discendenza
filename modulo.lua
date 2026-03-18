@@ -41,30 +41,101 @@ end
 
 local function dividi(dati)
 	local n = 1
-	local resto = 0
-	local nx,px
+	local nx, px
+	local confini = {}
+	local alignDefault = dati['align'] or 'c'
+
+	local function isAlign(val)
+		return val == '' or val == 's' or val == 'c' or val == 'd'
+	end
+
+	local function lunghezzaValida(extra, ultimo)
+		if extra < 0 or extra > 7 then
+			return false
+		end
+		if math.fmod(extra, 2) == 1 then
+			return isAlign(ultimo)
+		end
+		return true
+	end
+
+	local function trovaConfini(pos)
+		local restanti, extra, ultimo, prox
+		if pos > n then
+			return true
+		end
+		if not tonumber(dati[pos]) then
+			return false
+		end
+		if not tonumber(dati[pos + 1]) then
+			return false
+		end
+		restanti = n - pos + 1
+		for lung=4,11 do
+			if lung <= restanti then
+				extra = lung - 4
+				ultimo = dati[pos + lung - 1]
+				if lunghezzaValida(extra, ultimo) then
+					prox = pos + lung
+					if prox > n or (tonumber(dati[prox]) and tonumber(dati[prox + 1])) then
+						confini[pos] = lung
+						if trovaConfini(prox) then
+							return true
+						end
+						confini[pos] = nil
+					end
+				end
+			end
+		end
+		return false
+	end
+
 	while (dati[n]) do n = n+1 end
 	n = n-1
-	for m=4,n,4 do
-		nx = tonumber(dati[m-3])
-		px = tonumber(dati[m-2])
+	if not trovaConfini(1) then
+		error(string.format('Numero di dati %d non valido', n))
+	end
+
+	local pos = 1
+	local lung, extra, limite, idx
+	while pos <= n do
+		lung = confini[pos]
+		nx = tonumber(dati[pos])
+		px = tonumber(dati[pos + 1])
 		if (nx) then
 			if (px) then
 				if (pers[nx]) then
 					error(string.format('Inserito id = %d per più elementi',nx))
 				else
-					pers[nx] = { padre = px, testo = dati[m-1], nota = dati[m], id = -1, x = -1, y = -1, sp = 0, figli = {} }
+					pers[nx] = {
+						padre = px,
+						testo = dati[pos + 2],
+						nota = dati[pos + 3],
+						coniugi = {},
+						align = alignDefault,
+						id = -1,
+						x = -1,
+						y = -1,
+						sp = 0,
+						figli = {}
+					}
+					extra = lung - 4
+					limite = pos + lung - 1
+					if math.fmod(extra, 2) == 1 then
+						pers[nx].align = dati[limite]
+						limite = limite - 1
+					end
+					for idx = pos + 4, limite, 2 do
+						table.insert(pers[nx].coniugi, { nome = dati[idx], data = dati[idx + 1] })
+					end
 				end
 			else
-				error(string.format('Inserito id genitore = %s non numerico (id = %d)',dati[m-2],nx))
+				error(string.format('Inserito id genitore = %s non numerico (id = %d)',dati[pos + 1],nx))
 			end
 		else
-			error(string.format('Inserito id = %s non numerico',dati[m-3]))
+			error(string.format('Inserito id = %s non numerico',dati[pos]))
 		end
-		resto = n-m
-	end
-	if (resto > 0) then
-		error(string.format('Numero di dati %d non valido (elementi in più: %d)',n,resto))
+		pos = pos + lung
 	end
 end
 
