@@ -305,6 +305,50 @@ local function calcolaY(pid, t)
 	return t
 end
 
+local function testoNonVuoto(testo)
+	if (testo == nil) then return '' end
+	testo = mw.text.trim(tostring(testo))
+	if (testo == '') then return '' end
+	return testo
+end
+
+local function notaValida(nota)
+	nota = testoNonVuoto(nota)
+	return nota ~= '' and nota ~= '-' and nota or ''
+end
+
+local function componiRigaConiuge(coniuge)
+	if (type(coniuge) ~= 'table') then return '' end
+	local nome = testoNonVuoto(coniuge.nome or coniuge[1])
+	local data = testoNonVuoto(coniuge.data or coniuge[2])
+	if (nome == '') then return data end
+	if (data == '') then return nome end
+	return nome .. ' ' .. data
+end
+
+local function componiTestoPersona(persona)
+	local testo = persona.testo
+	local nota = notaValida(persona.nota)
+	local coniugi = persona.coniugi
+	local righeConiugi = {}
+	if (type(coniugi) == 'table') then
+		if (coniugi.nome or coniugi.data or coniugi[1] or coniugi[2]) then
+			coniugi = { coniugi }
+		end
+		for _, coniuge in ipairs(coniugi) do
+			local rigaConiuge = componiRigaConiuge(coniuge)
+			if (rigaConiuge ~= '') then table.insert(righeConiugi, rigaConiuge) end
+		end
+	end
+	if (nota ~= '') then
+		testo = testo .. ' - ' .. nota
+	end
+	if (#righeConiugi > 0) then
+		testo = testo .. '<br/>' .. table.concat(righeConiugi, '<br/>')
+	end
+	return testo
+end
+
 local function mostraY(pid)
 	local bTabella = mw.html.create('table')
 		:attr({['cellpadding']='0',['cellspacing']='0',['border']='0'})
@@ -331,7 +375,7 @@ local function mostraY2(pid, a)
 			:node(mw.html.create('td')
 				:attr({['colspan']=2*a-1, ['rowspan']=2})
 				:css('padding', '0px 3px 2px 1px')
-				:wikitextIf(pers[pid].nota=='', pers[pid].testo, pers[pid].testo..' - '..pers[pid].nota))
+				:wikitext(componiTestoPersona(pers[pid])))
 		riga2
 			:node(mw.html.create('td'))
 			:node(mw.html.create('td')
@@ -344,7 +388,7 @@ local function mostraY2(pid, a)
 				:node(mw.html.create('td')
 					:attr('colspan',2*a-1)
 					:css('padding','0px 0px 2px 2px')
-					:wikitextIf(pers[pid].nota=='',pers[pid].testo,pers[pid].testo..' - '..pers[pid].nota)
+					:wikitext(componiTestoPersona(pers[pid]))
 				)
 		)
 	end
